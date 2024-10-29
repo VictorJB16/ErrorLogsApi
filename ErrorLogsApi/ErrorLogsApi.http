@@ -1,0 +1,6 @@
+@ErrorLogsApi_HostAddress = http://localhost:5040
+
+GET {{ErrorLogsApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
