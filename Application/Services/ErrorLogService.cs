@@ -27,6 +27,10 @@ namespace Application.Services
             return await _errorLogRepository.GetControlledErrorsAsync();
         }
 
+        public async Task<IEnumerable<ErrorLog>> GetAllErrorLogsAsync()
+        {
+            return await _errorLogRepository.GetAllErrorLogsAsync();
+        }
         public async Task UpdateErrorLogAsync(ErrorLog errorLog)
         {
             await _errorLogRepository.UpdateErrorLogAsync(errorLog);
