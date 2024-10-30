@@ -40,5 +40,10 @@ namespace Infrastucture.Repositories
             var filter = Builders<ErrorLog>.Filter.Eq(e => e.Id, id);
             await _errorLogs.DeleteOneAsync(filter);
         }
+
+        public async Task<IEnumerable<ErrorLog>> GetAllErrorLogsAsync()
+        {
+            return await _errorLogs.Find(_ => true).ToListAsync();
+        }
     }
 }

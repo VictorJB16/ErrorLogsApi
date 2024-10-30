@@ -33,5 +33,19 @@ namespace ErrorLogsApi.Controllers
 
             return Ok();
         }
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<ErrorLog>>> GetAllErrorLogs()
+        {
+            var errorLogs = await _errorLogService.GetAllErrorLogsAsync();
+            return Ok(errorLogs);
+        }
+
+        [HttpGet("controlled")]
+        public async Task<ActionResult<IEnumerable<ErrorLog>>> GetControlledErrors()
+        {
+            var controlledErrors = await _errorLogService.GetControlledErrorsAsync();
+            return Ok(controlledErrors);
+        }
     }
 }
