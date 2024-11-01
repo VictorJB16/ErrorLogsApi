@@ -1,5 +1,6 @@
 using Application.Services;
 using Domain.Interfaces;
+using ErrorLogsApi.BackgroundServices;
 using ErrorLogsApi.Jobs;
 using Infrastucture.Repositories;
 using Infrastucture.Settings;
@@ -14,7 +15,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
+builder.Services.Configure<AzureServiceBusSettings>(
+    builder.Configuration.GetSection("AzureServiceBus"));
 
 builder.Services.Configure<MongoDBSettings>(
     builder.Configuration.GetSection("MongoDBSettings"));
@@ -38,6 +40,11 @@ builder.Services.AddQuartz(q =>
         .WithIdentity("RetryJob-trigger")
         .WithCronSchedule("0 0/1 * * * ?")); // Cada 1 minuto
 });
+
+
+builder.Services.AddHostedService<ErrorConsumerService>();
+builder.Services.AddScoped<ErrorLogService>();
+
 
 builder.Services.AddQuartzHostedService(
     q => q.WaitForJobsToComplete = true);
