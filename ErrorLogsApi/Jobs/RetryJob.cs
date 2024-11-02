@@ -1,7 +1,10 @@
 ﻿using Application.Services;
+using Azure.Messaging.ServiceBus;
 using Domain.Entities;
 using Newtonsoft.Json.Linq;
 using Quartz;
+using Microsoft.Extensions.Options;
+using Infrastucture.Settings;
 
 namespace ErrorLogsApi.Jobs
 {
@@ -9,49 +12,78 @@ namespace ErrorLogsApi.Jobs
     public class RetryJob : IJob
     {
         private readonly ErrorLogService _errorLogService;
+        private readonly ServiceBusClient _client;
+        private readonly ServiceBusSender _sender;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
 
-        public RetryJob(ErrorLogService errorLogService)
+        public RetryJob(IServiceScopeFactory serviceScopeFactory, IOptions<AzureServiceBusSettings> serviceBusSettings)
         {
-            _errorLogService = errorLogService;
+            _serviceScopeFactory = serviceScopeFactory;
+
+            var settings = serviceBusSettings.Value;
+
+            _client = new ServiceBusClient(settings.SendConnectionString);
+            _sender = _client.CreateSender(settings.FakerQueueName);
         }
 
         public async Task Execute(IJobExecutionContext context)
         {
-            var controlledErrors = await _errorLogService.GetControlledErrorsAsync();
-
-            foreach (var error in controlledErrors)
+            using (var scope = _serviceScopeFactory.CreateScope())
             {
-                bool success = await RetryProcessAsync(error);
+                var errorLogService = scope.ServiceProvider.GetRequiredService<ErrorLogService>();
 
-                if (success)
-                {
-                    await _errorLogService.DeleteErrorLogAsync(error.Id);
-                }
-                else
-                {
-                    error.RetryCount++;
+                var controlledErrors = await errorLogService.GetControlledErrorsAsync();
 
-                    if (error.RetryCount >= 3)
+                foreach (var error in controlledErrors)
+                {
+                    bool success = await RetryProcessAsync(error);
+
+                    if (success)
                     {
-                        error.IsControlled = false;
+                        await errorLogService.DeleteErrorLogAsync(error.Id);
                     }
+                    else
+                    {
+                        error.RetryCount++;
 
-                    await _errorLogService.UpdateErrorLogAsync(error);
+                        if (error.RetryCount >= 3)
+                        {
+                            error.IsControlled = false;
+                        }
+
+                        await errorLogService.UpdateErrorLogAsync(error);
+                    }
                 }
             }
         }
 
+
         private async Task<bool> RetryProcessAsync(ErrorLog error)
         {
-            // Deserializar el JSON para acceder a los datos si es necesario
-            var errorData = JObject.Parse(error.ErrorJson);
+            try
+            {
+                // Crea un mensaje para enviar al faker
+                var message = new ServiceBusMessage(error.ErrorJson);
 
-            // Implementa aquí la lógica de reintento
-            // Por ahora, simularemos un proceso que falla
-            await Task.Delay(500); // Simular proceso
+                // Envía el mensaje
+                await _sender.SendMessageAsync(message);
 
-            // Puedes basar el éxito en algún valor dentro de errorData
-            return false; // Cambia a true para simular éxito
+                // Aquí podrías implementar lógica adicional para verificar si el envío fue exitoso
+                // Por simplicidad, asumiremos que fue exitoso si no hay excepción
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                // Maneja la excepción, puedes registrar el error si es necesario
+                return false;
+            }
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await _sender.DisposeAsync();
+            await _client.DisposeAsync();
         }
     }
 }
