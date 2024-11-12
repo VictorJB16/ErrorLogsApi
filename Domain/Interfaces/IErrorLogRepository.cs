@@ -14,5 +14,6 @@ namespace Domain.Interfaces
         Task<IEnumerable<ErrorLog>> GetAllErrorLogsAsync();
         Task UpdateErrorLogAsync(ErrorLog errorLog);
         Task DeleteErrorLogAsync(string id);
+        Task<IEnumerable<ErrorLog>> GetNewErrorLogsAsync();
     }
 }

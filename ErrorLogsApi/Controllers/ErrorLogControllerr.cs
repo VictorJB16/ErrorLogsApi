@@ -34,6 +34,38 @@ namespace ErrorLogsApi.Controllers
             return Ok();
         }
 
+        // Endpoint para enviar errores en tiempo real usando SSE
+        [HttpGet("stream")]
+        public async Task StreamErrors(CancellationToken cancellationToken)
+        {
+            Response.ContentType = "text/event-stream";
+            Response.Headers["Cache-Control"] = "no-cache";
+            Response.Headers["Connection"] = "keep-alive";
+
+            try
+            {
+                // Mantener la conexión abierta para enviar eventos en tiempo real
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    var newErrorLogs = await _errorLogService.GetNewErrorLogsAsync();  
+                    foreach (var errorLog in newErrorLogs)
+                    {
+                        
+                        await Response.WriteAsync($"data: {JsonConvert.SerializeObject(errorLog)}\n\n");
+                        await Response.Body.FlushAsync();  
+                    }
+
+                    
+                    await Task.Delay(10000);  
+                }
+            }
+            catch (Exception ex)
+            {
+                
+                Console.WriteLine($"Error en la transmisión de errores: {ex.Message}");
+            }
+        }
+
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ErrorLog>>> GetAllErrorLogs()
         {
