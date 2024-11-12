@@ -40,5 +40,10 @@ namespace Application.Services
         {
             await _errorLogRepository.DeleteErrorLogAsync(id);
         }
+
+        public async Task<IEnumerable<ErrorLog>> GetNewErrorLogsAsync()
+        {
+            return await _errorLogRepository.GetNewErrorLogsAsync();   // Obtener los errores nuevos
+        }
     }
 }

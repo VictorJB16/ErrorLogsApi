@@ -45,5 +45,12 @@ namespace Infrastucture.Repositories
         {
             return await _errorLogs.Find(_ => true).ToListAsync();
         }
+
+        public async Task<IEnumerable<ErrorLog>> GetNewErrorLogsAsync()
+        {
+            // Lógica para obtener errores nuevos, por ejemplo, errores que se agregaron en los últimos 10 minutos
+            var filter = Builders<ErrorLog>.Filter.Gt(x => x.OccurredAt, DateTime.UtcNow.AddMinutes(-10)); // Filtrar errores recientes
+            return await _errorLogs.Find(filter).ToListAsync();
+        }
     }
 }

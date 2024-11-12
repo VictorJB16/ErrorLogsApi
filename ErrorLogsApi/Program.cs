@@ -26,7 +26,7 @@ builder.Services.AddScoped<ErrorLogService>();
 
 
 
-builder.Services.AddQuartz(q =>
+/*builder.Services.AddQuartz(q =>
 {
     q.UseMicrosoftDependencyInjectionJobFactory();
 
@@ -39,15 +39,15 @@ builder.Services.AddQuartz(q =>
         .ForJob(jobKey)
         .WithIdentity("RetryJob-trigger")
         .WithCronSchedule("0 0/1 * * * ?")); // Cada 1 minuto
-});
+});*/
 
 
 builder.Services.AddHostedService<ErrorConsumerService>();
 builder.Services.AddScoped<ErrorLogService>();
 
 
-builder.Services.AddQuartzHostedService(
-    q => q.WaitForJobsToComplete = true);
+/*builder.Services.AddQuartzHostedService(
+    q => q.WaitForJobsToComplete = true);*/
 
 // Agregar controladores
 builder.Services.AddControllers()
@@ -57,6 +57,19 @@ builder.Services.AddControllers()
         options.SerializerSettings.NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore;
     });
 
+// Configurar CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("CorsPolicy",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:5173") //Puerto del FE
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        });
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -65,6 +78,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors("CorsPolicy");
 
 app.UseHttpsRedirection();
 
