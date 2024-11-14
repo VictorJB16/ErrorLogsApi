@@ -9,11 +9,11 @@ namespace Domain.Interfaces
 {
     public interface IErrorLogRepository
     {
-        Task AddErrorLogAsync(ErrorLog errorLog);
-        Task<IEnumerable<ErrorLog>> GetControlledErrorsAsync();
-        Task<IEnumerable<ErrorLog>> GetAllErrorLogsAsync();
-        Task UpdateErrorLogAsync(ErrorLog errorLog);
-        Task DeleteErrorLogAsync(string id);
-        Task<IEnumerable<ErrorLog>> GetNewErrorLogsAsync();
+        Task AddErrorLogAsync(FailedPurchase failedPurchase);
+        Task<IEnumerable<FailedPurchase>> GetControlledErrorsAsync();
+        Task<IEnumerable<FailedPurchase>> GetAllErrorLogsAsync();
+        Task UpdateErrorLogAsync(FailedPurchase failedPurchase);
+        Task DeleteErrorLogAsync(Guid id);
+        Task<IEnumerable<FailedPurchase>> GetNewErrorLogsAsync();
     }
 }
