@@ -46,7 +46,7 @@ namespace ErrorLogsApi.BackgroundServices
 
                 var messageBody = args.Message.Body.ToString();
 
-                // Procesa el mensaje recibido
+                // Procesa el mensaje recibido y convierte el mensaje en FailedPurchase
                 await ProcessErrorMessageAsync(messageBody, errorLogService);
 
                 // Marca el mensaje como completado para que se elimine de la cola
@@ -62,15 +62,15 @@ namespace ErrorLogsApi.BackgroundServices
 
         private async Task ProcessErrorMessageAsync(string message, ErrorLogService errorLogService)
         {
-            // Convierte el mensaje en un objeto ErrorLog
-            var errorLog = new ErrorLog
+            // Convierte el mensaje en un objeto FailedPurchase
+            var failedPurchase = new FailedPurchase
             {
-                ErrorJson = message,
-                OccurredAt = DateTime.UtcNow
+                ErrorMessage = message,  // Asumiendo que el mensaje contiene el ErrorMessage
+                CreatedAt = DateTime.UtcNow
             };
 
             // Almacena el error en la base de datos
-            await errorLogService.AddErrorLogAsync(errorLog);
+            await errorLogService.AddErrorLogAsync(failedPurchase);
         }
 
         public override async Task StopAsync(CancellationToken stoppingToken)

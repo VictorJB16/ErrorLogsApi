@@ -1,7 +1,7 @@
 using Application.Services;
 using Domain.Interfaces;
-using ErrorLogsApi.BackgroundServices;
-using ErrorLogsApi.Jobs;
+//using ErrorLogsApi.BackgroundServices;
+//using ErrorLogsApi.Jobs;
 using Infrastucture.Repositories;
 using Infrastucture.Settings;
 using Quartz;
@@ -18,12 +18,12 @@ builder.Services.AddSwaggerGen();
 builder.Services.Configure<AzureServiceBusSettings>(
     builder.Configuration.GetSection("AzureServiceBus"));
 
+
 builder.Services.Configure<MongoDBSettings>(
     builder.Configuration.GetSection("MongoDBSettings"));
 
 builder.Services.AddScoped<IErrorLogRepository, ErrorLogRepository>();
 builder.Services.AddScoped<ErrorLogService>();
-
 
 
 /*builder.Services.AddQuartz(q =>
@@ -42,8 +42,7 @@ builder.Services.AddScoped<ErrorLogService>();
 });*/
 
 
-builder.Services.AddHostedService<ErrorConsumerService>();
-builder.Services.AddScoped<ErrorLogService>();
+//builder.Services.AddHostedService<ErrorConsumerService>();
 
 
 /*builder.Services.AddQuartzHostedService(

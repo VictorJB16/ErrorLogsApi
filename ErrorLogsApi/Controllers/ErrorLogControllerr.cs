@@ -18,20 +18,32 @@ namespace ErrorLogsApi.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ReceiveError([FromBody] object errorJson)
+        public async Task<IActionResult> ReceiveError([FromBody] FailedPurchase errorLog)
         {
-            if (errorJson == null)
-                return BadRequest();
+            if (errorLog == null)
+                return BadRequest("No data received");
 
-            var errorLog = new ErrorLog
-            {
-                ErrorJson = JsonConvert.SerializeObject(errorJson),
-                OccurredAt = DateTime.UtcNow
-            };
+            errorLog.CreatedAt = DateTime.UtcNow;
 
             await _errorLogService.AddErrorLogAsync(errorLog);
 
-            return Ok();
+            return Ok("Error log stored successfully");
+        }
+
+        // Endpoint para obtener todos los errores almacenados
+        [HttpGet]
+        public async Task<IActionResult> GetAllErrorLogs()
+        {
+            var errorLogs = await _errorLogService.GetAllErrorLogsAsync();
+            return Ok(errorLogs);
+        }
+
+        // Endpoint para obtener solo los errores controlados
+        [HttpGet("controlled")]
+        public async Task<IActionResult> GetControlledErrors()
+        {
+            var controlledErrors = await _errorLogService.GetControlledErrorsAsync();
+            return Ok(controlledErrors);
         }
 
         // Endpoint para enviar errores en tiempo real usando SSE
@@ -47,37 +59,25 @@ namespace ErrorLogsApi.Controllers
                 // Mantener la conexión abierta para enviar eventos en tiempo real
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    var newErrorLogs = await _errorLogService.GetNewErrorLogsAsync();  
+                    var newErrorLogs = await _errorLogService.GetNewErrorLogsAsync();
                     foreach (var errorLog in newErrorLogs)
                     {
-                        
+
                         await Response.WriteAsync($"data: {JsonConvert.SerializeObject(errorLog)}\n\n");
-                        await Response.Body.FlushAsync();  
+                        await Response.Body.FlushAsync();
                     }
 
-                    
-                    await Task.Delay(10000);  
+
+                    await Task.Delay(10000);
                 }
             }
             catch (Exception ex)
             {
-                
+
                 Console.WriteLine($"Error en la transmisión de errores: {ex.Message}");
             }
         }
 
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<ErrorLog>>> GetAllErrorLogs()
-        {
-            var errorLogs = await _errorLogService.GetAllErrorLogsAsync();
-            return Ok(errorLogs);
-        }
 
-        [HttpGet("controlled")]
-        public async Task<ActionResult<IEnumerable<ErrorLog>>> GetControlledErrors()
-        {
-            var controlledErrors = await _errorLogService.GetControlledErrorsAsync();
-            return Ok(controlledErrors);
-        }
     }
 }
