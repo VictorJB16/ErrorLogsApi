@@ -1,10 +1,14 @@
 ﻿using Application.Services;
 using Azure.Messaging.ServiceBus;
 using Domain.Entities;
-using Newtonsoft.Json.Linq;
 using Quartz;
 using Microsoft.Extensions.Options;
 using Infrastucture.Settings;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Text;
+using Newtonsoft.Json;
 
 namespace ErrorLogsApi.Jobs
 {
@@ -12,78 +16,121 @@ namespace ErrorLogsApi.Jobs
     public class RetryJob : IJob
     {
         private readonly ErrorLogService _errorLogService;
-        private readonly ServiceBusClient _client;
-        private readonly ServiceBusSender _sender;
-        private readonly IServiceScopeFactory _serviceScopeFactory;
+        private readonly HttpClient _httpClient;
+        private readonly string _errorEndpoint;
 
-        public RetryJob(IServiceScopeFactory serviceScopeFactory, IOptions<AzureServiceBusSettings> serviceBusSettings)
+        public RetryJob(ErrorLogService errorLogService, IHttpClientFactory httpClientFactory)
         {
-            _serviceScopeFactory = serviceScopeFactory;
+            _errorLogService = errorLogService;
 
-            var settings = serviceBusSettings.Value;
-
-            _client = new ServiceBusClient(settings.SendConnectionString);
-            _sender = _client.CreateSender(settings.FakerQueueName);
+            // Crear un cliente HTTP para llamar al endpoint
+            _httpClient = httpClientFactory.CreateClient();
+            _errorEndpoint = "http://localhost:5000/api/fakeEndpoint"; // Reemplazar con el endpoint real
         }
 
         public async Task Execute(IJobExecutionContext context)
         {
-            using (var scope = _serviceScopeFactory.CreateScope())
+            // Obtener los errores controlados (solo aquellos que pueden ser reintentados)
+            var controlledErrors = await _errorLogService.GetControlledErrorsAsync();
+
+            foreach (var error in controlledErrors)
             {
-                var errorLogService = scope.ServiceProvider.GetRequiredService<ErrorLogService>();
-
-                var controlledErrors = await errorLogService.GetControlledErrorsAsync();
-
-                foreach (var error in controlledErrors)
+                // Filtrar errores que son reintentables (IsRetriable = true)
+                if (error.IsRetriable)
                 {
                     bool success = await RetryProcessAsync(error);
 
                     if (success)
                     {
-                        await errorLogService.DeleteErrorLogAsync(error.Id);
+                        // Eliminar el error de la base de datos si el reintento fue exitoso
+                        await _errorLogService.DeleteErrorLogAsync(error.Id);
                     }
                     else
                     {
+                        // Incrementar el contador de reintentos
                         error.RetryCount++;
 
                         if (error.RetryCount >= 3)
                         {
-                            error.IsControlled = false;
+                            // Después de 3 reintentos, marcar como no reintentable
+                            error.IsRetriable = false;
+
+                            // Lanzar una excepción para este error (el Job ha fallado)
+                            await _errorLogService.UpdateErrorLogAsync(error);
+                            throw new InvalidOperationException($"Error ID {error.Id}: No se pudo procesar después de 3 intentos");
                         }
 
-                        await errorLogService.UpdateErrorLogAsync(error);
+                        // Actualizar el estado del error (aún reintentable)
+                        await _errorLogService.UpdateErrorLogAsync(error);
                     }
                 }
             }
         }
 
-
-        private async Task<bool> RetryProcessAsync(ErrorLog error)
+        private async Task<bool> RetryProcessAsync(FailedPurchase failedPurchase)
         {
             try
             {
-                // Crea un mensaje para enviar al faker
-                var message = new ServiceBusMessage(error.ErrorJson);
+                // Serializa el error para enviarlo al endpoint del Faker
+                var errorPayload = new
+                {
+                    failedPurchase.CardNumber,
+                    failedPurchase.PurchaseDate,
+                    failedPurchase.Amount,
+                    failedPurchase.Status,
+                    failedPurchase.ErrorMessage
+                };
 
-                // Envía el mensaje
-                await _sender.SendMessageAsync(message);
+                var json = JsonConvert.SerializeObject(errorPayload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                // Aquí podrías implementar lógica adicional para verificar si el envío fue exitoso
-                // Por simplicidad, asumiremos que fue exitoso si no hay excepción
+                // Enviar el error al endpoint
+                var response = await _httpClient.PostAsync(_errorEndpoint, content);
 
-                return true;
+                if (response.IsSuccessStatusCode)
+                {
+                    return true; // El reintento fue exitoso
+                }
+                else
+                {
+                    return false; // El reintento falló
+                }
             }
             catch (Exception ex)
             {
-                // Maneja la excepción, puedes registrar el error si es necesario
+                // Maneja la excepción, puedes loguearlo si es necesario
+                Console.WriteLine($"Error al procesar el mensaje: {ex.Message}");
                 return false;
             }
         }
 
-        public async ValueTask DisposeAsync()
-        {
-            await _sender.DisposeAsync();
-            await _client.DisposeAsync();
-        }
+
+        //codigo para simular que el retry se hizo correctamente,regresa true entonces se elimina en la db
+
+        //private async Task<bool> RetryProcessAsync(FailedPurchase failedPurchase)
+        //{
+        //    try
+        //    {
+        //        // Simulamos que el reintento fue exitoso
+        //        Console.WriteLine($"Simulando envío al Faker para el error con ID {failedPurchase.Id}");
+
+        //        // Simulación de un envío exitoso
+        //        // Puedes poner una condición o contador aquí para simular fallos intermitentes si lo deseas
+        //        await Task.Delay(1000);  // Simular un pequeño delay como si se estuviera procesando el mensaje
+
+        //        // Regresar 'true' para indicar que el reintento fue exitoso
+        //        return true;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        // En caso de error, se loguea (simulamos un fallo)
+        //        Console.WriteLine($"Error al simular el envío: {ex.Message}");
+        //        return false;
+        //    }
+        //}
+
     }
+
+
+
 }

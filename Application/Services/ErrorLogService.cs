@@ -20,23 +20,12 @@ namespace Application.Services
 
         public async Task AddErrorLogAsync(FailedPurchase errorLog)
         {
-            if (_errorLogRepository == null)
-            {
-                throw new InvalidOperationException("ErrorLogRepository is not initialized.");
-            }
-
-            // Validar solo errores de tipo transacción
-            if (ValidateError(errorLog))
-            {
-                errorLog.Id = Guid.NewGuid();  // Asignar un ID único
-                errorLog.CreatedAt = DateTime.UtcNow;  // Fecha de creación
-                await _errorLogRepository.AddErrorLogAsync(errorLog);  // Guardar el error
-            }
-            else
-            {
-                throw new InvalidOperationException("Error type is invalid for transaction");
-            }
+            // Aquí simplemente eliminamos la validación
+            errorLog.Id = Guid.NewGuid();  // Asignar un ID único
+            errorLog.CreatedAt = DateTime.UtcNow;  // Fecha de creación
+            await _errorLogRepository.AddErrorLogAsync(errorLog);  // Guardar el error
         }
+
 
         // Validar solo errores de tipo transacción
         public bool ValidateError(FailedPurchase errorLog)
