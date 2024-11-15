@@ -17,14 +17,17 @@ namespace ErrorLogsApi.Controllers
             _errorLogService = errorLogService;
         }
 
+        // Endpoint para recibir el error
         [HttpPost]
         public async Task<IActionResult> ReceiveError([FromBody] FailedPurchase errorLog)
         {
             if (errorLog == null)
                 return BadRequest("No data received");
 
+            // Establecer la fecha de creación si no se envía
             errorLog.CreatedAt = DateTime.UtcNow;
 
+            // Aquí ya no validamos si el error es reintentable, simplemente lo almacenamos
             await _errorLogService.AddErrorLogAsync(errorLog);
 
             return Ok("Error log stored successfully");
@@ -38,7 +41,7 @@ namespace ErrorLogsApi.Controllers
             return Ok(errorLogs);
         }
 
-        // Endpoint para obtener solo los errores controlados
+        // Endpoint para obtener solo los errores controlados (errores reintentables)
         [HttpGet("controlled")]
         public async Task<IActionResult> GetControlledErrors()
         {
@@ -62,22 +65,18 @@ namespace ErrorLogsApi.Controllers
                     var newErrorLogs = await _errorLogService.GetNewErrorLogsAsync();
                     foreach (var errorLog in newErrorLogs)
                     {
-
                         await Response.WriteAsync($"data: {JsonConvert.SerializeObject(errorLog)}\n\n");
                         await Response.Body.FlushAsync();
                     }
 
-
-                    await Task.Delay(10000);
+                    await Task.Delay(10000);  // Espera 10 segundos antes de enviar los siguientes errores
                 }
             }
             catch (Exception ex)
             {
-
                 Console.WriteLine($"Error en la transmisión de errores: {ex.Message}");
             }
         }
-
-
     }
+
 }

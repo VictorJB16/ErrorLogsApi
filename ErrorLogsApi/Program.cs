@@ -1,12 +1,10 @@
 using Application.Services;
 using Domain.Interfaces;
-//using ErrorLogsApi.BackgroundServices;
-//using ErrorLogsApi.Jobs;
+using ErrorLogsApi.BackgroundServices;
+using ErrorLogsApi.Jobs;
 using Infrastucture.Repositories;
 using Infrastucture.Settings;
 using Quartz;
-
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,37 +16,37 @@ builder.Services.AddSwaggerGen();
 builder.Services.Configure<AzureServiceBusSettings>(
     builder.Configuration.GetSection("AzureServiceBus"));
 
-
 builder.Services.Configure<MongoDBSettings>(
     builder.Configuration.GetSection("MongoDBSettings"));
 
 builder.Services.AddScoped<IErrorLogRepository, ErrorLogRepository>();
 builder.Services.AddScoped<ErrorLogService>();
 
-
-/*builder.Services.AddQuartz(q =>
+// Add Quartz for the RetryJob
+builder.Services.AddQuartz(q =>
 {
     q.UseMicrosoftDependencyInjectionJobFactory();
 
-    // Registrar el trabajo de reintento
+    // Register the retry job
     var jobKey = new JobKey("RetryJob");
 
     q.AddJob<RetryJob>(opts => opts.WithIdentity(jobKey));
 
+    // Cambiar la expresión cron para ejecutarse cada 10 segundos
     q.AddTrigger(opts => opts
         .ForJob(jobKey)
         .WithIdentity("RetryJob-trigger")
-        .WithCronSchedule("0 0/1 * * * ?")); // Cada 1 minuto
-});*/
+        .WithCronSchedule("*/10 * * * * ?")); // Cada 10 segundos
+});
 
+// Ensure Quartz hosted service waits for jobs to complete
+builder.Services.AddQuartzHostedService(
+    q => q.WaitForJobsToComplete = true);
 
-//builder.Services.AddHostedService<ErrorConsumerService>();
+// Add HTTP client factory (needed for HTTP calls in RetryJob)
+builder.Services.AddHttpClient();
 
-
-/*builder.Services.AddQuartzHostedService(
-    q => q.WaitForJobsToComplete = true);*/
-
-// Agregar controladores
+// Add controllers
 builder.Services.AddControllers()
     .AddNewtonsoftJson(options =>
     {
@@ -56,13 +54,13 @@ builder.Services.AddControllers()
         options.SerializerSettings.NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore;
     });
 
-// Configurar CORS
+// Configure CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("CorsPolicy",
         policy =>
         {
-            policy.WithOrigins("http://localhost:5173") //Puerto del FE
+            policy.WithOrigins("http://localhost:5173") // Frontend port
                   .AllowAnyMethod()
                   .AllowAnyHeader()
                   .AllowCredentials();
@@ -85,4 +83,3 @@ app.UseHttpsRedirection();
 app.MapControllers();
 
 app.Run();
-

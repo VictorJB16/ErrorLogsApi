@@ -34,5 +34,8 @@ namespace Domain.Entities
 
         [BsonElement("CreatedAt")]
         public DateTime CreatedAt { get; set; }
+
+        [BsonElement("RetryCount")]
+        public int RetryCount { get; set; }
     }
 }
