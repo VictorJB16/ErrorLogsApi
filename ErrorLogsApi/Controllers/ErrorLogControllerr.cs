@@ -50,7 +50,7 @@ namespace ErrorLogsApi.Controllers
         }
 
         // Endpoint para enviar errores en tiempo real usando SSE
-        [HttpGet("stream")]
+        /*[HttpGet("stream")]
         public async Task StreamErrors(CancellationToken cancellationToken)
         {
             Response.ContentType = "text/event-stream";
@@ -76,7 +76,7 @@ namespace ErrorLogsApi.Controllers
             {
                 Console.WriteLine($"Error en la transmisión de errores: {ex.Message}");
             }
-        }
+        }*/
     }
 
 }
