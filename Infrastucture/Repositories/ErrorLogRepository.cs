@@ -26,9 +26,9 @@ namespace Infrastucture.Repositories
             await _errorLogs.InsertOneAsync(errorLog);
         }
 
-        public async Task<IEnumerable<FailedPurchase>> GetControlledErrorsAsync()
+        public async Task<IEnumerable<FailedPurchase>> GetControlledErrorsAsync(IEnumerable<string> controlledErrorMessages)
         {
-            var filter = Builders<FailedPurchase>.Filter.Eq(e => e.IsRetriable, true);
+            var filter = Builders<FailedPurchase>.Filter.In(e => e.ErrorMessage, controlledErrorMessages);
             return await _errorLogs.Find(filter).ToListAsync();
         }
 

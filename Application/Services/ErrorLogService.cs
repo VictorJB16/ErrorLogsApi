@@ -38,11 +38,18 @@ namespace Application.Services
         {
             return await _errorLogRepository.GetAllErrorLogsAsync();
         }
-
-        // Obtener solo errores controlados (transacciones fallidas)
         public async Task<IEnumerable<FailedPurchase>> GetControlledErrorsAsync()
         {
-            return await _errorLogRepository.GetControlledErrorsAsync();
+            var controlledErrorMessages = new List<string>
+             {
+                "Fondos insuficientes.",
+                "La tarjeta está inactiva.",
+                "Límite de transacción excedido.",
+                "La tarjeta ha expirado.",
+                "Actividad fraudulenta detectada."
+               };
+
+            return await _errorLogRepository.GetControlledErrorsAsync(controlledErrorMessages);
         }
         public async Task UpdateErrorLogAsync(FailedPurchase failedPurchase)
         {
