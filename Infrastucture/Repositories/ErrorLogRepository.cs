@@ -28,8 +28,11 @@ namespace Infrastucture.Repositories
 
         public async Task<IEnumerable<FailedPurchase>> GetControlledErrorsAsync(IEnumerable<string> controlledErrorMessages)
         {
-            var filter = Builders<FailedPurchase>.Filter.In(e => e.ErrorMessage, controlledErrorMessages);
-            return await _errorLogs.Find(filter).ToListAsync();
+            var messageFilter = Builders<FailedPurchase>.Filter.In(e => e.ErrorMessage, controlledErrorMessages);
+            var retryFilter = Builders<FailedPurchase>.Filter.Lt(e => e.RetryCount, 3);
+            var combinedFilter = Builders<FailedPurchase>.Filter.And(messageFilter, retryFilter);
+
+            return await _errorLogs.Find(combinedFilter).ToListAsync();
         }
 
         public async Task UpdateErrorLogAsync(FailedPurchase errorLog)
