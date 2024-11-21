@@ -42,11 +42,11 @@ namespace Application.Services
         {
             var controlledErrorMessages = new List<string>
              {
-                "Fondos insuficientes.",
-                "La tarjeta está inactiva.",
-                "Límite de transacción excedido.",
-                "La tarjeta ha expirado.",
-                "Actividad fraudulenta detectada."
+                "Fondos insuficientes",
+                "La tarjeta está inactiva",
+                "Límite de transacción excedido",
+                "La tarjeta ha expirado",
+                "Actividad fraudulenta detectada"
                };
 
             return await _errorLogRepository.GetControlledErrorsAsync(controlledErrorMessages);
