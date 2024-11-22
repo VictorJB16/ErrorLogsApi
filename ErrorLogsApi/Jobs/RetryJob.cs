@@ -17,7 +17,6 @@ namespace ErrorLogsApi.Jobs
     {
         private readonly ErrorLogService _errorLogService;
         private readonly HttpClient _httpClient;
-        private readonly string _errorEndpoint;
 
         public RetryJob(ErrorLogService errorLogService, IHttpClientFactory httpClientFactory)
         {
@@ -25,7 +24,6 @@ namespace ErrorLogsApi.Jobs
 
             // Crear un cliente HTTP para llamar al endpoint
             _httpClient = httpClientFactory.CreateClient();
-            _errorEndpoint = "http://localhost:5000/api/fakeEndpoint"; // Reemplazar con el endpoint real
         }
 
         public async Task Execute(IJobExecutionContext context)
@@ -71,21 +69,20 @@ namespace ErrorLogsApi.Jobs
         {
             try
             {
-                // Serializa el error para enviarlo al endpoint del Faker
+                // Enviar solo el Id de la compra fallida al endpoint del Faker
                 var errorPayload = new
                 {
-                    failedPurchase.CardNumber,
-                    failedPurchase.PurchaseDate,
-                    failedPurchase.Amount,
-                    failedPurchase.Status,
-                    failedPurchase.ErrorMessage
+                    Id = failedPurchase.Id // Solo enviamos el ID
                 };
 
                 var json = JsonConvert.SerializeObject(errorPayload);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                // Enviar el error al endpoint
-                var response = await _httpClient.PostAsync(_errorEndpoint, content);
+                // Endpoint dinámico utilizando el ID de la compra
+                var url = $"https://x5fq8jzp-7257.use2.devtunnels.ms/api/Purchases/retry/{failedPurchase.Id}";
+
+                // Enviar el mensaje al endpoint
+                var response = await _httpClient.PostAsync(url, content);
 
                 if (response.IsSuccessStatusCode)
                 {
