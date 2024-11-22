@@ -21,8 +21,7 @@ namespace Application.Services
         public async Task AddErrorLogAsync(FailedPurchase errorLog)
         {
             // Aquí simplemente eliminamos la validación
-            errorLog.Id = Guid.NewGuid();  // Asignar un ID único
-            errorLog.CreatedAt = DateTime.UtcNow;  // Fecha de creación
+      
             await _errorLogRepository.AddErrorLogAsync(errorLog);  // Guardar el error
         }
 

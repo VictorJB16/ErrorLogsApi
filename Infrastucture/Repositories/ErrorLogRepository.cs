@@ -21,8 +21,7 @@ namespace Infrastucture.Repositories
 
         public async Task AddErrorLogAsync(FailedPurchase errorLog)
         {
-            errorLog.Id = Guid.NewGuid(); // Asignar un ID único
-            errorLog.CreatedAt = DateTime.UtcNow; // Establecer la fecha de creación
+            
             await _errorLogs.InsertOneAsync(errorLog);
         }
 
